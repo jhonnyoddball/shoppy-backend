@@ -1,12 +1,13 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { promises as fs } from 'fs';
 import { CreateProductRequest } from './dto/create-product.request';
 import { PrismaService } from '../prisma/prisma.service';
-import { join } from 'path';
-import { PRODUCT_IMAGES } from './product-images';
 import { Prisma } from '@prisma/client/wasm';
 import { ProductsGateway } from './products.gateway';
-import { GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import {
+  GetObjectCommand,
+  PutObjectCommand,
+  S3Client,
+} from '@aws-sdk/client-s3';
 
 @Injectable()
 export class ProductsService {
@@ -80,7 +81,7 @@ export class ProductsService {
         new GetObjectCommand({
           Bucket: this.bucketName,
           Key: `${productId}.jpg`,
-        })
+        }),
       );
       return !!Body;
     } catch (error) {
