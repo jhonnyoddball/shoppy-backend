@@ -6,9 +6,13 @@ import { join } from 'path';
 import { PRODUCT_IMAGES } from './product-images';
 import { Prisma } from '@prisma/client/wasm';
 import { ProductsGateway } from './products.gateway';
+import { GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 
 @Injectable()
 export class ProductsService {
+  private readonly s3Client = new S3Client({ region: 'us-east-2' });
+  private readonly bucketName = process.env.PRODUCT_IMAGE_BUCKET;
+
   constructor(
     private readonly prismaService: PrismaService,
     private readonly productsGateway: ProductsGateway,
@@ -72,14 +76,26 @@ export class ProductsService {
 
   private async imageExists(productId: number) {
     try {
-      await fs.access(
-        join(`${PRODUCT_IMAGES}/${productId}.jpg`),
-        fs.constants.F_OK,
+      const { Body } = await this.s3Client.send(
+        new GetObjectCommand({
+          Bucket: this.bucketName,
+          Key: `${productId}.jpg`,
+        })
       );
-      return true;
+      return !!Body;
     } catch (error) {
       console.log(error);
       return false;
     }
+  }
+
+  async uploadProductImage(productId: number, file: Buffer) {
+    await this.s3Client.send(
+      new PutObjectCommand({
+        Bucket: this.bucketName,
+        Key: `${productId}.jpg`,
+        Body: file,
+      }),
+    );
   }
 }

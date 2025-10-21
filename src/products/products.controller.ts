@@ -7,7 +7,6 @@ import {
   UseInterceptors,
   UploadedFile,
   Param,
-  BadRequestException,
   Query,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -16,10 +15,6 @@ import { CurrentUser } from '../auth/current-user.decorator';
 import { TokenPayload } from '../auth/token-payload.interface';
 import { ProductsService } from './products.service';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import { extname } from 'path';
-import { existsSync, mkdirSync } from 'fs';
-import { PRODUCT_IMAGES } from './product-images';
 
 @Controller('products')
 export class ProductsController {
@@ -36,35 +31,15 @@ export class ProductsController {
 
   @Post(':productId/image')
   @UseGuards(JwtAuthGuard)
-  @UseInterceptors(
-    FileInterceptor('image', {
-      storage: diskStorage({
-        destination: (req: Express.Request, file: Express.Multer.File, cb) => {
-          const uploadPath = PRODUCT_IMAGES;
-          if (!existsSync(uploadPath)) {
-            mkdirSync(uploadPath, { recursive: true });
-          }
-          cb(null, uploadPath);
-        },
-        filename: (
-          req: Express.Request & { params?: { productId?: string } },
-          file: Express.Multer.File,
-          cb,
-        ) => {
-          const id = req.params?.productId ?? Date.now().toString();
-          cb(null, `${id}${extname(file.originalname)}`);
-        },
-      }),
-    }),
-  )
+  @UseInterceptors(FileInterceptor('image'))
   uploadProductImage(
     @Param('productId') productId: string,
     @UploadedFile() file: Express.Multer.File,
   ) {
-    if (!file) {
-      throw new BadRequestException('No file uploaded');
-    }
-    return { message: 'ok' };
+    return this.productsService.uploadProductImage(
+      Number(productId),
+      file.buffer,
+    );
   }
 
   @Get()
