@@ -2,13 +2,38 @@ version: 0.2
 phases:
   install:
     runtime-versions:
-      nodejs: latest
+      nodejs: 20
     commands:
-      - npm install
+      - echo "Installing dependencies..."
+      - npm ci
+  pre_build:
+    commands:
+      - echo "Running pre-build tasks..."
+      - npx prisma generate
   build:
     commands:
-      - npx prisma generate
+      - echo "Building the application..."
       - npm run build
+  post_build:
+    commands:
+      - echo "Cleaning up dev dependencies..."
+      - npm prune --production
+      - echo "Build completed successfully!"
 artifacts:
   files:
     - '**/*'
+  exclude-paths:
+    - node_modules/**/*
+    - .git/**/*
+    - .github/**/*
+    - README.md
+    - .env
+    - .env.*
+    - '*.log'
+    - coverage/**/*
+    - test/**/*
+    - src/**/*
+    - prisma/migrations/**/*
+cache:
+  paths:
+    - 'node_modules/**/*'
